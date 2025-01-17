@@ -1,0 +1,32 @@
+# Use the base image with both Node.js versions and npm 7
+FROM my-node-base-image
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code
+COPY . /app
+
+# Set environment variable to specify the Node.js version (default to 20)
+ARG NODE_VERSION=node20
+ENV NODE_VERSION=${NODE_VERSION}
+
+# Create the necessary symlinks based on the environment variable
+RUN if [ "$NODE_VERSION" = "node16" ]; then \
+      ln -sf /usr/local/bin/node16 /usr/local/bin/node && \
+      ln -sf /usr/local/lib/node_modules16 /usr/local/lib/node_modules; \
+    else \
+      ln -sf /usr/local/bin/node20 /usr/local/bin/node && \
+      ln -sf /usr/local/lib/node_modules20 /usr/local/lib/node_modules; \
+    fi
+
+# Install application dependencies
+RUN /usr/local/bin/$NODE_VERSION /usr/local/lib/$NODE_VERSION/node_modules/npm/bin/npm-cli.js install
+
+# Default command to start the application
+CMD ["node", "your_app.js"]
+
+
+
+docker build -t my-node-app --build-arg NODE_VERSION=node20 .
+docker build -t my-node-app --build-arg NODE_VERSION=node16 .
