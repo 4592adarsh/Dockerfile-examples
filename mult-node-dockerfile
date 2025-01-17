@@ -1,0 +1,67 @@
+# Use the official Node.js 20 image as the base for the first stage
+FROM node:20 AS node20
+
+# Use the official Node.js 16 image as the base for the second stage
+FROM node:16 AS node16
+
+# Final stage: create a base image with both Node.js versions
+FROM debian:bookworm-slim
+
+# Install necessary packages and dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Node.js 20 from the first stage
+COPY --from=node20 /usr/local/bin/node /usr/local/bin/node20
+COPY --from=node20 /usr/local/lib/node_modules /usr/local/lib/node_modules20
+
+# Copy Node.js 16 from the second stage
+COPY --from=node16 /usr/local/bin/node /usr/local/bin/node16
+COPY --from=node16 /usr/local/lib/node_modules /usr/local/lib/node_modules16
+
+# Create symlinks for easy switching between Node.js versions
+RUN ln -s /usr/local/bin/node20 /usr/local/bin/node
+RUN ln -s /usr/local/lib/node_modules20 /usr/local/lib/node_modules
+
+# Set default Node.js version to 20
+RUN ln -sf /usr/local/bin/node20 /usr/local/bin/node
+RUN ln -sf /usr/local/lib/node_modules20 /usr/local/lib/node_modules
+
+# Set working directory
+WORKDIR /app
+
+# Default command to show the Node.js version
+CMD ["node", "--version"]
+
+# Use the base image with both Node.js versions
+FROM my-node-base-image
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code
+COPY . /app
+
+# Set build argument to specify the Node.js version (default to 20)
+ARG NODE_VERSION=node20
+
+# Create the necessary symlinks based on the build argument
+RUN if [ "$NODE_VERSION" = "node16" ]; then \
+      ln -sf /usr/local/bin/node16 /usr/local/bin/node && \
+      ln -sf /usr/local/lib/node_modules16 /usr/local/lib/node_modules; \
+    else \
+      ln -sf /usr/local/bin/node20 /usr/local/bin/node && \
+      ln -sf /usr/local/lib/node_modules20 /usr/local/lib/node_modules; \
+    fi
+
+# Install application dependencies using npm 7
+RUN /usr/local/bin/$NODE_VERSION /usr/local/lib/$NODE_VERSION/node_modules/npm/bin/npm-cli.js install -g npm@7 && \
+    /usr/local/bin/$NODE_VERSION /usr/local/lib/$NODE_VERSION/node_modules/npm/bin/npm-cli.js install
+
+# Set the default command to start the application
+CMD ["node", "your_app.js"]
+
+docker build -t my-node-app --build-arg NODE_VERSION=node20 .
+docker build -t my-node-app --build-arg NODE_VERSION=node16 .
+
