@@ -28,6 +28,9 @@ RUN ln -s /usr/local/lib/node_modules20 /usr/local/lib/node_modules
 RUN ln -sf /usr/local/bin/node20 /usr/local/bin/node
 RUN ln -sf /usr/local/lib/node_modules20 /usr/local/lib/node_modules
 
+RUN /usr/local/bin/node20 /usr/local/lib/node_modules20/npm/bin/npm-cli.js install -g semver@7.5.2
+RUN /usr/local/bin/node16 /usr/local/lib/node_modules16/npm/bin/npm-cli.js install -g semver@7.5.2
+
 # Set working directory
 WORKDIR /app
 
